@@ -105,21 +105,30 @@ class WeatherService {
   }
   // TODO: Build parseCurrentWeather method
   // private parseCurrentWeather(response: any) {}
-  // private parseCurrentWeather(response: any):Weather {
-  //   const temperature = response.temprature;
-  //   const humidity = response.humidity;
-  //   const windSpeed = response.windSpeed;
-  //   const description = response.description;
-  //   return new Weather(temperature, humidity,windSpeed,description);
+  private parseCurrentWeather(response: any):Weather {
+    const currentWeatherData = response[0];
+    const temperatureInKelvin = currentWeatherData.main.temp;
+    const temperature = parseFloat((((temperatureInKelvin - 273.15) * 9/5) + 32).toFixed(2));
+    const humidity = currentWeatherData.main.humidity;
+    const windSpeed = currentWeatherData  .wind.speed;
+    const description = currentWeatherData.weather[0].description;
+    const icon = currentWeatherData.weather[0].icon;
+    const city = this.cityName;
+    const timestamp = currentWeatherData.dt
+    const currentday =new Date(timestamp* 1000).toLocaleDateString();
+  
+    return new Weather(city, currentday, icon,temperature, humidity, windSpeed, description);
 
-  // }
+  }
   // TODO: Complete buildForecastArray method
   // private buildForecastArray(currentWeather: Weather, weatherData: any[]) {}
-  private buildForecastArray(weatherData: any[]): Weather[] {
+  private buildForecastArray(currentWeather: Weather, weatherData: any[]): Weather[] {
     const forecastArray: Weather[] = [];
+    //First one should be current Weather
+    forecastArray.push(currentWeather);
+
     const dailyData: { [date: string]: any[] } = {};
-  
-    // Group data by date
+      // Group data by date
     weatherData.forEach(data => {
       const date = data.dt_txt.split(' ')[0]; // Extract date part
       if (!dailyData[date]) {
@@ -128,8 +137,9 @@ class WeatherService {
       dailyData[date].push(data);
     });
   
-    // Select a representative sample for each day and create Weather objects
-    Object.keys(dailyData).slice(0, 6).forEach(date => {
+    // Select a representative sample for each day and push to
+    //forecastweather
+    Object.keys(dailyData).slice(1, 6).forEach(date => {
       const city = this.cityName;
       const dayData = dailyData[date][0]; // Select the first entry of the day
       const temperatureInKelvin = dayData.main.temp;
@@ -143,7 +153,7 @@ class WeatherService {
       const weather = new Weather(city,formattedDate, icon, temperature, humidity, windSpeed, description);
       forecastArray.push(weather);
     });
-  
+   
     return forecastArray;
   }
   // TODO: Complete getWeatherForCity method
@@ -155,8 +165,8 @@ class WeatherService {
       const coordinates = await this.fetchAndDestructureLocationData();
       const weatherQuery = this.buildWeatherQuery(coordinates);
       const weatherData = await this.fetchWeatherData(weatherQuery);
-      // const currentWeather = this.parseCurrentWeather(weatherData);
-      const forecastArray = this.buildForecastArray(weatherData);
+      const currentWeather = this.parseCurrentWeather(weatherData);
+      const forecastArray = this.buildForecastArray(currentWeather,weatherData);
       return forecastArray;
     } catch (err) {
       console.log('Error getting weather for city:', err);

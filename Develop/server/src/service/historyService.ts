@@ -1,14 +1,11 @@
-import fs from 'fs';
-import { promisify } from 'util';
+// import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
 // const appendFile = promisify(fs.appendFile);
 // TODO: Define a City class with name and id properties
 class City {
@@ -17,16 +14,31 @@ class City {
 
 // TODO: Complete the HistoryService class
 class HistoryService {
+  private filePath = path.join(__dirname, 'searchHistory.json');
+      
   // TODO: Define a read method that reads from the searchHistory.json file
+
+  private async ensureFileExists() {
+    try {
+      await fs.access(this.filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        await fs.writeFile(this.filePath, JSON.stringify([]));
+      } else {
+        throw error;
+      }
+    }
+  }
+
   // private async read() {}
   private async read() {
     try {
-      const filePath = path.join(__dirname, 'searchHistory.json');
-      const data = await readFile(filePath, 'utf-8');
+      await this.ensureFileExists();
+     const data = await fs.readFile(this.filePath, 'utf-8');
       if (!data) {
         return [];
       }
-      return JSON.parse(data);
+      return JSON.parse(data as string);
     } catch (err) {
 
       return console.log('Error reading the file', err);
@@ -39,9 +51,8 @@ class HistoryService {
   // private async write(cities: City[]) {}
   private async write(cities: City[]) {
     try {
-      const filePath = path.join(__dirname, 'searchHistory.json');
-      // await cities.forEach((city)=>{
-      writeFile(filePath, JSON.stringify(cities, null, 2), 'utf-8');
+        // await cities.forEach((city)=>{
+      fs.writeFile(this.filePath, JSON.stringify(cities, null, 2), 'utf-8');
       //  }
 
     } catch (err) {
